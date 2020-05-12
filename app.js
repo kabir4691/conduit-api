@@ -1,7 +1,14 @@
+require('dotenv').config();
 const createError = require('http-errors');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const mongoose = require('mongoose');
+const usersRouter = require('./routes/users')
+
+mongoose.connect(process.env.MONGODB_URI, {useNewUrlParser: true, useUnifiedTopology: true})
+.then(_ => console.log('MongoDB connection established'))
+.catch(err => console.log(err));
 
 const app = express();
 
@@ -10,8 +17,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+app.use('/api/users', usersRouter);
+
 // catch 404 and forward to error handler
-app.use((_, _, next) => {
+app.use((req, res, next) => {
   next(createError(404));
 });
 
@@ -21,9 +30,14 @@ app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
+  // Send the error
+  console.log(err);
   res.status(err.status || 500);
-  res.render('error');
+  res.send({
+    'errors': {
+      'body': [err.message]
+    }
+  });
 });
 
 module.exports = app;
