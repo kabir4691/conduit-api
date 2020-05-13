@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const ApiError = require('../models/apiError');
 
 const generateToken = (userDocument, callback) => {
   jwt.sign(getJWTPayload(userDocument), process.env.JWT_SECRET, (err, token) => {
