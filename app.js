@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 const usersRouter = require('./routes/users')
+const profilesRouter = require('./routes/profiles');
 
 mongoose.connect(process.env.MONGODB_URI, {useNewUrlParser: true, useUnifiedTopology: true})
 .then(_ => console.log('MongoDB connection established'))
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use('/api/users', usersRouter);
+app.use('/api/profiles', profilesRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {

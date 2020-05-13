@@ -27,6 +27,14 @@ const userSchema = new mongoose.Schema({
   image: {
     type: String,
     default: ''
+  },
+  following: {
+    type: Number,
+    default: 0
+  },
+  followers: {
+    type: Number,
+    default: 0
   }
 });
 
