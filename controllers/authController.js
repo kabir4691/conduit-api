@@ -10,7 +10,8 @@ const generateToken = (userDocument, callback) => {
 
 const getJWTPayload = userDocument => { 
   return {
-    userId: userDocument._id
+    userId: userDocument._id,
+    username: userDocument.username
   }
 };
 
@@ -20,7 +21,7 @@ const checkAuthorization = (req, res, next) => {
   const token = authorization.split('Token: ')[1];
   if (!token) return next(new ApiError("Invalid authorization format"));
   const payload = jwt.verify(token, process.env.JWT_SECRET);
-  req.userId = payload.userId;
+  req.user = payload;
   req.token = token;
   next();
 }

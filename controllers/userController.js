@@ -58,7 +58,7 @@ const login = (req, res, next) => {
 
 const getCurrentUser = (req, res, next) => {
   console.log(req);
-  UserModel.findById(req.userId)
+  UserModel.findById(req.user.userId)
   .then(document => {
     if (document === null) return Promise.reject(new ApiError('User not found'));
     res.json(getApiResponse(document, req.token));
@@ -88,7 +88,7 @@ const updateCurrentUser = async (req, res, next) => {
     if (document) return next(new ApiError('Username already in use'));
   }
 
-  UserModel.findByIdAndUpdate(req.userId, updateObject, { new: true })
+  UserModel.findByIdAndUpdate(req.user.userId, updateObject, { new: true })
   .then(document => {
     res.json(getApiResponse(document, req.token));
   })

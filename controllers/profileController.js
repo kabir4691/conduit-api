@@ -22,7 +22,7 @@ const followUser = async (req, res, next) => {
   if (!username) return next(new ApiError('Please specify username'));
 
   // Check if user is already followed
-  const followingDocument = await FollowingModel.findOne({ userId: req.userId
+  const followingDocument = await FollowingModel.findOne({ userId: req.user.userId
   });
   if (followingDocument) {
     const alreadyFollowerUser = followingDocument.following.find(item => item.username === username);
@@ -39,12 +39,12 @@ const followUser = async (req, res, next) => {
   const followedUserDocument = await UserModel.findOne({username});
   if (!followedUserDocument) return next(new ApiError('Username not found'));
   // Check if trying to follow self
-  if (followedUserDocument._id === req.userId) return next(new ApiError('Cannot follow self'));
+  if (followedUserDocument._id === req.user.userId) return next(new ApiError('Cannot follow self'));
 
   try {
-    const currentUserDocument = await UserModel.findById(req.userId);
+    const currentUserDocument = await UserModel.findById(req.user.userId);
 
-    const followingDocument = await FollowingModel.findOneAndUpdate({ userId: req.userId },
+    const followingDocument = await FollowingModel.findOneAndUpdate({ userId: req.user.userId },
       { $addToSet: { 
         following: {
           username: followedUserDocument.username,
@@ -80,12 +80,12 @@ const unfollowUser = async (req, res, next) => {
   const followedUserDocument = await UserModel.findOne({username});
   if (!followedUserDocument) return next(new ApiError('Username not found'));
   // Check if trying to unfollow self
-  if (followedUserDocument._id === req.userId) return next(new ApiError('Cannot follow/unfollow self'));
+  if (followedUserDocument._id === req.user.userId) return next(new ApiError('Cannot follow/unfollow self'));
 
   try {
-    const currentUserDocument = await UserModel.findById(req.userId);
+    const currentUserDocument = await UserModel.findById(req.user.userId);
 
-    const followingDocument = await FollowingModel.findOne({ userId: req.userId });
+    const followingDocument = await FollowingModel.findOne({ userId: req.user.userId });
     if (followingDocument) {
       followingDocument.following = followingDocument.following.filter(item => item.username !== username);
       await followingDocument.save();
