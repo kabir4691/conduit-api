@@ -26,10 +26,21 @@ const checkAuthorization = (req, res, next) => {
   next();
 }
 
+const checkAuthorizationOptional = (req, res, next) => {
+  const { authorization } = req.headers;
+  if (!authorization) return next();
+  const token = authorization.split('Token: ')[1];
+  if (!token) return next();
+  const payload = jwt.verify(token, process.env.JWT_SECRET);
+  req.user = payload;
+  req.token = token;
+  next();
+}
 
 module.exports = {
   generateToken,
-  checkAuthorization
+  checkAuthorization,
+  checkAuthorizationOptional
 }
  
 
