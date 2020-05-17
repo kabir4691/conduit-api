@@ -57,7 +57,6 @@ const login = (req, res, next) => {
 };
 
 const getCurrentUser = (req, res, next) => {
-  console.log(req);
   UserModel.findById(req.user.userId)
   .then(document => {
     if (document === null) return Promise.reject(new ApiError('User not found'));

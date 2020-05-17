@@ -48,7 +48,6 @@ userSchema.pre('save', function(next) {
 });
 
 userSchema.methods.verifyPassword = function(password) {
-  console.log('coca cola tu');
   return bcrypt.compareSync(password, this.password);
 }
 
