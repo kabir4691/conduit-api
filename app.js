@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const mongoose = require('mongoose');
 const usersRouter = require('./routes/users')
 const profilesRouter = require('./routes/profiles');
+const articlesRouter = require('./routes/articles');
 
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false })
 .then(_ => console.log('MongoDB connection established'))
@@ -20,6 +21,7 @@ app.use(cookieParser());
 
 app.use('/api/users', usersRouter);
 app.use('/api/profiles', profilesRouter);
+app.use('/api/articles', articlesRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
