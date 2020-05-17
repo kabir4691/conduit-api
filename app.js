@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const usersRouter = require('./routes/users')
 const profilesRouter = require('./routes/profiles');
 
-mongoose.connect(process.env.MONGODB_URI, {useNewUrlParser: true, useUnifiedTopology: true})
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false })
 .then(_ => console.log('MongoDB connection established'))
 .catch(err => console.log(err));
 
