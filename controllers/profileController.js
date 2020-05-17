@@ -7,111 +7,105 @@ const getUser = (req, res, next) => {
   const username = req.params.username;
   if (!username) return next(new ApiError('Please specify username'));
 
+  let userDocument;
   UserModel.findOne({username})
   .then(document => {
     if (document === null) {
       return Promise.reject(new ApiError('Username not found'));
     }
-    res.json(getApiResponse(document));
+    userDocument = document;
+    return req.user ? FollowingModel.findOne({ user: req.user.userId, followings: document._id }) : null;
+  })
+  .then(document => {
+    res.json(getApiResponse(userDocument, document !== null));
   })
   .catch(err => next(err));
 }
 
 const followUser = async (req, res, next) => {
   const username = req.params.username;
+
   if (!username) return next(new ApiError('Please specify username'));
 
-  // Check if user is already followed
-  const followingDocument = await FollowingModel.findOne({ userId: req.user.userId
-  });
-  if (followingDocument) {
-    const alreadyFollowerUser = followingDocument.following.find(item => item.username === username);
-    if (alreadyFollowerUser) return res.json({
-      profile: {
-        username: alreadyFollowerUser.username,
-        bio: alreadyFollowerUser.bio,
-        image: alreadyFollowerUser.image
-      }
-    });
-  }
-
-  // Check if user to follow exists
-  const followedUserDocument = await UserModel.findOne({username});
-  if (!followedUserDocument) return next(new ApiError('Username not found'));
-  // Check if trying to follow self
-  if (followedUserDocument._id === req.user.userId) return next(new ApiError('Cannot follow self'));
-
+  let otherUserDocument;
   try {
-    const currentUserDocument = await UserModel.findById(req.user.userId);
+    otherUserDocument = await UserModel.findOne({ username });
 
-    const followingDocument = await FollowingModel.findOneAndUpdate({ userId: req.user.userId },
-      { $addToSet: { 
-        following: {
-          username: followedUserDocument.username,
-          bio: followedUserDocument.bio,
-          image: followedUserDocument.image,
-        }
-      }}, { new: true, upsert: true });
+    if (otherUserDocument === null) return next(new ApiError(`User with username ${username} not found`));
 
-    const followerDocument = await FollowerModel.findOneAndUpdate({ userId: followedUserDocument._id },
-    { $addToSet: { 
-      followers: {
-        username: currentUserDocument.username,
-        bio: currentUserDocument.bio,
-        image: currentUserDocument.image,
-      }
-    }}, { new: true, upsert: true });
+    if (otherUserDocument._id.toString() === req.user.userId) return next(new ApiError('Cannot follow self'));
 
-    currentUserDocument.following = followingDocument.following.length;
-    await currentUserDocument.save();
+    const followingDocument = await FollowingModel.findOneAndUpdate(
+      { user: req.user.userId },
+      { $addToSet: { followings: otherUserDocument._id } },
+      { upsert: true, new: true}
+    );
 
-    followedUserDocument.followers = followerDocument.followers.length;
-    await followedUserDocument.save();
+    const followerDocument = await FollowerModel.findOneAndUpdate(
+      { user: otherUserDocument._id },
+      { $addToSet: { followers: req.user.userId } },
+      { upsert: true, new: true}
+    );
 
-    res.json(getApiResponse(followedUserDocument));
-  } catch(err) { return next(err); }
+    await UserModel.findByIdAndUpdate(
+      req.user.userId,
+      { following: followingDocument.followings.length }
+    );
+
+    otherUserDocument.followers = followerDocument.followers.length;
+    await otherUserDocument.save()
+
+    res.json(getApiResponse(otherUserDocument, true));
+  } catch(err) {
+    return next(err);
+  }
 }
 
 const unfollowUser = async (req, res, next) => {
-  const username = req.params.username;
+  const { username } = req.params;
+
   if (!username) return next(new ApiError('Please specify username'));
 
-  // Check if user to unfollow exists
-  const followedUserDocument = await UserModel.findOne({username});
-  if (!followedUserDocument) return next(new ApiError('Username not found'));
-  // Check if trying to unfollow self
-  if (followedUserDocument._id === req.user.userId) return next(new ApiError('Cannot follow/unfollow self'));
-
+  let otherUserDocument;
   try {
-    const currentUserDocument = await UserModel.findById(req.user.userId);
+    otherUserDocument = await UserModel.findOne({ username });
 
-    const followingDocument = await FollowingModel.findOne({ userId: req.user.userId });
-    if (followingDocument) {
-      followingDocument.following = followingDocument.following.filter(item => item.username !== username);
-      await followingDocument.save();
-    }
+    if (otherUserDocument === null) return next(new ApiError(`User with username ${username} not found`));
 
-    const followerDocument = await FollowerModel.findOne({ userId: followedUserDocument._id });
-    if (followerDocument) {
-      followerDocument.followers = followerDocument.followers.filter(item => item.username !== currentUserDocument.username);
-      await followerDocument.save();
-    }
+    if (otherUserDocument._id.toString() === req.user.userId) return next(new ApiError('Cannot unfollow self'));
 
-    currentUserDocument.following = followingDocument ? followingDocument.following.length : 0;
-    await currentUserDocument.save();
+    const followingDocument = await FollowingModel.findOneAndUpdate(
+      { user: req.user.userId },
+      { $pull: { followings: otherUserDocument._id } },
+      { upsert: true, new: true}
+    );
 
-    followedUserDocument.followers = followerDocument ? followerDocument.followers.length : 0;
-    await followedUserDocument.save();
+    const followerDocument = await FollowerModel.findOneAndUpdate(
+      { user: otherUserDocument._id },
+      { $pull: { followers: req.user.userId } },
+      { upsert: true, new: true}
+    );
 
-    res.json(getApiResponse(followedUserDocument));
-  } catch(err) { return next(err); }
+    await UserModel.findByIdAndUpdate(
+      req.user.userId,
+      { following: followingDocument.followings.length }
+    );
+
+    otherUserDocument.followers = followerDocument.followers.length;
+    await otherUserDocument.save()
+
+    res.json(getApiResponse(otherUserDocument, false));
+  } catch(err) {
+    return next(err);
+  }
 }
 
-const getApiResponse = userDocument => {
+const getApiResponse = (userDocument, following) => {
   return { profile: {
     username: userDocument.username,
     bio: userDocument.bio,
-    image: userDocument.image
+    image: userDocument.image,
+    following
   }};
 }
 
